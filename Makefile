@@ -1,18 +1,18 @@
 CC = gcc
 CFLAGS = -Wall -pedantic -std=gnu99
 DEBUG = -g
-TARGETS = 2310dealer playerTypeA playerTypeB
+TARGETS = dealerMain playerTypeA playerTypeB
 OFILES = errors.o utility.o path.o game.o player.o coms.o deck.o dealer.o
 
 .DEFAULT_GOAL:= all
 .PHONY: all debug clean
 
-all: 2310dealer playerTypeA playerTypeB
+all: dealerMain playerTypeA playerTypeB
 debug: CFLAGS += $(DEBUG)
 debug: clean $(TARGETS)
 
-2310dealer: 2310dealer.o $(OFILES)
-	$(CC) $(CFLAGS) -o 2310dealer 2310dealer.o $(OFILES)
+dealerMain: dealerMain.o $(OFILES)
+	$(CC) $(CFLAGS) -o dealerMain dealerMain.o $(OFILES)
 
 playerTypeA: playerTypeA.o playerMain.c $(OFILES)
 	$(CC) $(CFLAGS) -o playerTypeA playerTypeA.o playerMain.c $(OFILES)
@@ -29,8 +29,8 @@ playerTypeA.o: playerTypeA.c move.h
 playerTypeB.o: playerTypeB.c move.h
 	$(CC) $(CFLAGS) -c playerTypeB.c
 
-2310dealer.o: 2310dealer.c path.h
-	$(CC) $(CFLAGS) -c 2310dealer.c
+dealerMain.o: dealerMain.c path.h
+	$(CC) $(CFLAGS) -c dealerMain.c
 
 path.o: path.c path.h utility.h
 	$(CC) $(CFLAGS) -c path.c
