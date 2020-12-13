@@ -1,8 +1,0 @@
-#ifndef MOVE_H
-#define MOVE_H
-
-#include "game.h"
-
-int get_move(Game* game, int pid);
-
-#endif
