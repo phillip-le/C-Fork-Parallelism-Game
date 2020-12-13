@@ -1,33 +1,33 @@
 CC = gcc
 CFLAGS = -Wall -pedantic -std=gnu99
 DEBUG = -g
-TARGETS = 2310dealer 2310A 2310B
+TARGETS = 2310dealer playerTypeA playerTypeB
 OFILES = errors.o utility.o path.o game.o player.o coms.o deck.o dealer.o
 
 .DEFAULT_GOAL:= all
 .PHONY: all debug clean
 
-all: 2310dealer 2310A 2310B
+all: 2310dealer playerTypeA playerTypeB
 debug: CFLAGS += $(DEBUG)
 debug: clean $(TARGETS)
 
 2310dealer: 2310dealer.o $(OFILES)
 	$(CC) $(CFLAGS) -o 2310dealer 2310dealer.o $(OFILES)
 
-2310A: 2310A.o 2310player.c $(OFILES)
-	$(CC) $(CFLAGS) -o 2310A 2310A.o 2310player.c $(OFILES)
+playerTypeA: playerTypeA.o playerMain.c $(OFILES)
+	$(CC) $(CFLAGS) -o playerTypeA playerTypeA.o playerMain.c $(OFILES)
 
-2310B: 2310B.o 2310player.c $(OFILES)
-	$(CC) $(CFLAGS) -o 2310B 2310B.o 2310player.c $(OFILES)
+playerTypeB: playerTypeB.o playerMain.c $(OFILES)
+	$(CC) $(CFLAGS) -o playerTypeB playerTypeB.o playerMain.c $(OFILES)
 
-2310player.o: 2310player.c
-	$(CC) $(CFLAGS) -c 2310player.c
+playerMain.o: playerMain.c
+	$(CC) $(CFLAGS) -c playerMain.c
 
-2310A.o: 2310A.c move.h
-	$(CC) $(CFLAGS) -c 2310A.c
+playerTypeA.o: playerTypeA.c move.h
+	$(CC) $(CFLAGS) -c playerTypeA.c
 
-2310B.o: 2310B.c move.h
-	$(CC) $(CFLAGS) -c 2310B.c
+playerTypeB.o: playerTypeB.c move.h
+	$(CC) $(CFLAGS) -c playerTypeB.c
 
 2310dealer.o: 2310dealer.c path.h
 	$(CC) $(CFLAGS) -c 2310dealer.c
