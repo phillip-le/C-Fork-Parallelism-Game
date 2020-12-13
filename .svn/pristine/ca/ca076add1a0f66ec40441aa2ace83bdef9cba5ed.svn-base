@@ -1,0 +1,44 @@
+#include "errors.h"
+#include "stdio.h"
+#include "utility.h"
+#include "path.h"
+#include "player.h"
+
+int main(int argc, char** argv) {
+    check_player_args(argc, argv);
+    int playerCount = argv[2], playerID = argv[3];
+    printf("^");
+    fflush(stdout);
+    
+    char* pathString = read_line(stdin);
+    if (pathString == NULL) {
+        exit(player_error_msg(PLAYER_BAD_PATH));
+    }
+    PlayerGame* playerGame = init_player_game(playerID, playerCount, pathString);
+    free(pathString);
+    exit(PLAYER_OK);
+}
+
+int get_playerA_move(Path* path, Player* player) {
+    int currentSite = player->currentSite;
+    int nextSite = currentSite + 1;
+    int nextBarrier = get_next_barrier(currentSite, path);
+    for (int i = nextSite; i < nextBarrier; i++) {
+        if (valid_move(path, player->currentSite, i) && 
+                path->sites[i] == DO) {
+            return i;
+        }
+    }
+    if (valid_move(path, player->currentSite, nextSite) && 
+            path->sites[nextSite] == MO) {
+        return nextSite;
+    }
+    for (int i = nextSite; i < nextBarrier; i++) {
+        if (valid_move(path, player->currentSite, i)) {
+            Site site = path->sites[i];
+            if (site == V1 || site == V2 || site == BARRIER) {
+                return i;
+            }
+        }
+    }
+}

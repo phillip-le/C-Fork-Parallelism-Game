@@ -1,0 +1,45 @@
+#ifndef PLAYER_H
+#define PLAYER_H
+
+#include "deck.h"
+#include "path.h"
+
+#define STARTING_MONEY 7
+
+// Indexes used for decoding dealer messages about player moves.
+#define PLAYER_ID_INDEX 0
+#define NEW_SITE_INDEX 1
+#define POINTS_INDEX 2
+#define MONEY_INDEX 3
+#define CARD_INDEX 4
+
+typedef struct {
+    int pid;
+    int money;
+    // Number of V1 sites visited so far
+    int V1;
+    // Number of V2 sites visited so far
+    int V2;
+    int points;
+    int currentSite;
+    // Stores the last turn this player moved
+    int lastTurn;
+    Deck* deck;
+} Player;
+
+Player* init_player(int pid);
+
+void free_players(Player** players, int playerCount);
+
+bool valid_move(Path* path, int currentSite, int destSite);
+
+void move_player(Path* path, int pid, int destSite);
+
+void update_player(Path* path, Player* player, int* updateInfo,
+        int currentTurn);
+
+void print_player_update(FILE* file, Player* player);
+
+int get_playerA_move(Path* path, Player* player);
+
+#endif

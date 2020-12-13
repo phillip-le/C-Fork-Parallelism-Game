@@ -1,0 +1,193 @@
+#include "player.h"
+#include "path.h"
+#include "deck.h"
+#include "errors.h"
+#include "stdlib.h"
+#include "stdbool.h"
+#include "deck.h"
+#include "utility.h"
+#include "stdio.h"
+#include "coms.h"
+#include "string.h"
+
+// Indexes used for decoding dealer messages about player moves.
+#define PLAYER_ID_INDEX 0
+#define NEW_SITE_INDEX 1
+#define POINTS_INDEX 2
+#define MONEY_INDEX 3
+#define CARD_INDEX 4
+
+Player* init_player(int playerID, int playerCount) {
+    Player* player = (Player*) malloc(sizeof(Player));
+    player->playerID = playerID;
+    player->playerCount = playerCount;
+    player->money = STARTING_MONEY;
+    player->V1 = 0;
+    player->V2 = 0;
+    player->points = 0;
+    player->currentSite = 0;
+    player->deck = create_deck(0, NULL);
+    return player;
+}
+
+PlayerGame* init_player_game(int playerID, int playerCount, 
+        char* pathString) {
+    PlayerGame* playerGame = (PlayerGame*) malloc(sizeof(PlayerGame));
+    playerGame->player = init_player(playerID, playerCount);
+    playerGame->path = read_path(pathString, playerCount);
+    if (playerGame->path == NULL) {
+        free(pathString);
+        free_player(playerGame->player);
+        exit(player_error_msg(PLAYER_BAD_PATH));
+    }
+    playerGame->cardCounts = (int*) calloc(playerCount, sizeof(int));
+    return playerGame;
+}
+
+void free_player(Player* player) {
+    free_deck(player->deck);
+    free(player);
+}
+
+void free_player_game(PlayerGame* playerGame) {
+    free_player(playerGame->player);
+    free_path(playerGame->path);
+    free(playerGame->cardCounts);
+    free(playerGame);
+}
+
+bool valid_move(Path* path, int currentSite, int destSite) {
+    if (site_occupied(path, destSite)) {
+        return false;
+    }
+    if (destSite > get_next_barrier(currentSite, path)) {
+        return false;
+    }
+    return true;
+}
+
+void move_player(Path* path, Player* player, int destSite) {
+    int playerID = player->playerID;
+    for (int i = 0; i < path->numOfSites; i++) {
+        path->playerPositions[i][playerID] = UNOCCUPIED;
+    }
+    path->playerPositions[destSite][playerID] = playerID;
+    player->currentSite = destSite;
+}
+
+int* get_player_update(Path* path, Player* player, CARDS nextCard) {
+    int* updateInfo = (int*) calloc(5, sizeof(int));
+    switch (path->sites[player->currentSite]) {
+        case MO:
+            updateInfo[MONEY_INDEX] = player->money + 3;
+            break;
+        case DO:
+            updateInfo[POINTS_INDEX] = player->points + 
+                    (int) player->money / 2;
+            updateInfo[MONEY_INDEX] = player->money * -1;
+            break;
+        case RI:
+            updateInfo[CARD_INDEX] = nextCard;
+            break;
+        case SITE_ERROR_TYPE:
+            free(updateInfo);
+            return NULL;
+        default:
+            break;
+    }
+    return updateInfo;
+}
+
+void update_player(Path* path, Player* player, int* updateInfo) {
+    move_player(path, player, updateInfo[NEW_SITE_INDEX]);
+    if (path->sites[updateInfo[NEW_SITE_INDEX]] == V1) {
+        player->V1++;
+    }
+    if (path->sites[updateInfo[NEW_SITE_INDEX]] == V2) {
+        player->V2++;
+    }
+    player->points += updateInfo[POINTS_INDEX];
+    player->money += updateInfo[MONEY_INDEX];
+    if (updateInfo[CARD_INDEX] != 0) {
+        add_card(player->deck, updateInfo[CARD_INDEX]);
+    } 
+}
+
+void print_player_update(FILE* file, Path* path, Player* player) {
+    fprintf(file, "Player %d Money=%d V1=%d V2=%d ",
+            player->playerID, player->money, player->V1, player->V2);
+    int* cardCounters = get_card_counters(player->deck);
+    fprintf(file, "Points=%d A=%d B=%d C=%d D=%d E=%d\n", 
+            player->points, cardCounters[0], cardCounters[1], cardCounters[2],
+            cardCounters[3], cardCounters[4]);
+    fflush(file);
+    free(cardCounters);
+}
+
+int* read_player_update(Path* path, Player* player, char* update) {
+    int msgStartLength = 3;
+    char msgStart[msgStartLength + 1];
+    str_splice(msgStart, update, 0, msgStartLength + 1);
+    if (!strcmp(msgStart, "HAP")) {
+        exit(player_error_msg(PLAYER_COMS));
+    }
+    char infoString[strlen(update) - msgStartLength + 1];
+    str_splice(infoString, update, msgStartLength, strlen(update));
+    int* info = (int*) calloc(5, sizeof(int));
+
+    char* invalidChar;
+    char* intString = strtok(infoString, ",");
+    info[0] = strtol(intString, &invalidChar, 10);
+    if (invalidChar[0] != '\0') {
+        free(info);
+        exit(player_error_msg(PLAYER_COMS));
+    }
+    for (int i = 1; i < 5; i++) {
+        intString = strtok(NULL, ",");
+        info[i] = strtol(intString, &invalidChar, 10);
+        if (invalidChar[0] != '\0') {
+            free(info);
+            exit(player_error_msg(PLAYER_COMS));
+        }
+    }
+    if (info[PLAYER_ID_INDEX] < 0 || 
+            info[PLAYER_ID_INDEX] > player->playerCount ||
+            !valid_move(path, player->currentSite, info[NEW_SITE_INDEX]) ||
+            info[CARD_INDEX] < 0 || info[CARD_INDEX] > 5) {
+        free(info);
+        exit(player_error_msg(PLAYER_COMS));
+    }
+    return info;
+}
+
+void recv_player_update(PlayerGame* playerGame, char* update) {
+    int* updateInfo = read_player_update(playerGame->path, playerGame->player,
+            update);
+    if (updateInfo[PLAYER_ID_INDEX] == playerGame->player->playerID) {
+        update_player(playerGame->path, playerGame->player, updateInfo);
+    }
+    if (updateInfo[CARD_INDEX] != 0) {
+        playerGame->cardCounts[updateInfo[PLAYER_ID_INDEX]]++;
+    }
+    print_player_update(stderr, playerGame->path, playerGame->player);
+}
+
+int calculate_player_score(Player* player) {
+    return calculate_deck_score(player->deck) + player->points + player->V1 + 
+            player->V2;
+}
+
+void check_player_args(int argc, char** argv) {
+    if (argc != 4) {
+        exit(player_error_msg(PLAYER_ARGS));
+    }
+    char *invalidChar1, *invalidChar2;
+    int playerCount = strtol(argv[2], &invalidChar1, 10);
+    if (*invalidChar1 != '\0' || playerCount < 1) {
+        exit(player_error_msg(PLAYER_COUNT));
+    }
+    int playerID = strtol(argv[3], &invalidChar2, 10);
+    if (*invalidChar2 != '\0' || playerID < 0 || playerID >= playerCount) {
+        exit(player_error_msg(PLAYER_BAD_ID));
+    }
+}

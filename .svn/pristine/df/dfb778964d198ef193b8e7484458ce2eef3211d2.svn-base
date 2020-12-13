@@ -1,0 +1,54 @@
+#include "errors.h"
+#include "stdio.h"
+#include "utility.h"
+#include "path.h"
+#include "player.h"
+
+int main(int argc, char** argv) {
+    if (argc != 4) {
+        exit(player_error_msg(PLAYER_ARGS));
+    }
+
+    int playerCount = argv[2], playerID = argv[3];
+    if (playerCount < 1) {
+        exit(player_error_msg(PLAYER_COUNT));
+    }
+    
+    if (playerID < 0 || playerID >= playerCount) {
+        exit(player_error_msg(PLAYER_BAD_ID));
+    }
+    printf("^");
+    fflush(stdout);
+    
+    char* pathString = read_line(stdin);
+    if (pathString == NULL) {
+        exit(player_error_msg(PLAYER_BAD_PATH));
+    }
+    Player* player = init_player(playerID, playerCount, pathString);
+    free(pathString);
+    exit(PLAYER_OK);
+}
+
+int get_playerA_move(Player* player) {
+    int currentSite = player->currentSite;
+    int nextSite = currentSite + 1;
+    int nextBarrier = get_next_barrier(currentSite, player->path);
+    for (int i = nextSite; i < nextBarrier; i++) {
+        if (valid_move(player->path, player->currentSite, i) && 
+                player->path->sites[i] == DO) {
+            return i;
+        }
+    }
+    if (valid_move(player->path, player->currentSite, nextSite) && 
+            player->path->sites[nextSite] == MO) {
+        return nextSite;
+    }
+    for (int i = nextSite; i < nextBarrier; i++) {
+        if (valid_move(player->path, player->currentSite, i)) {
+            Site site = player->path->sites[i];
+            if (site == V1 || site == V2 || site == BARRIER) {
+                return i;
+            }
+        }
+    }
+}

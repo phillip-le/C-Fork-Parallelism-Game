@@ -1,0 +1,63 @@
+#ifndef DECK_H
+#define DECK_H
+
+#define UNIQUE_CARD_COUNT 5
+
+#include "stdbool.h"
+
+typedef enum {
+    CARD_A,
+    CARD_B,
+    CARD_C,
+    CARD_D,
+    CARD_E,
+    CARD_INVALID
+} CARDS;
+
+typedef struct {
+    CARDS* cards;
+    int cardCount;
+} DECK;
+
+DECK* read_deck(char* deckString);
+
+DECK* create_deck(int cardCount, CARDS* cards);
+
+void free_deck(DECK* deck);
+
+bool add_card(DECK* deck, CARDS card);
+
+int calculate_score(DECK* deck);
+
+/**
+ * Counts how many ints in the array are greater than value.
+ * Param:
+ * array - the int array to check
+ * arrayLength - the length of the array
+ * value - the number to compare against
+ * Returns the number of ints in the array that are greater than value.
+ */
+int count_greater_than(int* array, int arrayLength, int value);
+
+/**
+ * Gets max value in array.
+ * Param:
+ * array - the int array to check
+ * arrayLength - the length of the array
+ * Returns the max value in the array.
+ */
+int max(int* array, int arrayLength);
+CARDS get_card(char card);
+char get_card_char(CARDS card);
+
+/**
+ * Gets number of cards of each type.
+ * Param:
+ * deck - the deck of cards to check
+ * Returns the number of cards of each type.
+ */
+int* get_card_counters(DECK* deck);
+
+void test_deck(DECK* deck);
+
+#endif

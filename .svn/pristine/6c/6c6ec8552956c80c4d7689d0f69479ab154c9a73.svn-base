@@ -1,0 +1,36 @@
+#include "errors.h"
+#include "utility.h"
+#include "path.h"
+#include "game.h"
+#include "player.h"
+#include "coms.h"
+#include "stdio.h"
+#include "stdlib.h"
+#include "string.h"
+
+int main(int argc, char** argv) {
+    check_player_args(argc, argv);
+    int playerCount = strtol(argv[1], NULL, 10);
+    int pid = strtol(argv[2], NULL, 10);
+    printf("^");
+    fflush(stdout);
+    
+    char* pathString = read_line(stdin);
+    if (pathString == NULL) {
+        exit(player_error_msg(PLAYER_BAD_PATH));
+    }
+    Game* game = init_game(pid, playerCount, pathString);
+    if (game == NULL) {
+        free(pathString);
+        exit(player_error_msg(PLAYER_BAD_PATH));
+    }
+    free(pathString);
+    while (1) {
+        char* msg = read_line(stdin);
+        if (msg != NULL) {
+            recv_dealer_msg(game, pid, msg);
+        } else {
+            exit(player_error_msg(PLAYER_COMS));
+        }
+    }
+}

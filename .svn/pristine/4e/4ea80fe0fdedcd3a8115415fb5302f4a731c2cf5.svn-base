@@ -1,0 +1,68 @@
+#include "player.h"
+#include "path.h"
+#include "deck.h"
+#include "errors.h"
+#include "utility.h"
+#include "stdlib.h"
+#include "stdbool.h"
+#include "stdio.h"
+#include "string.h"
+
+Player* init_player(int pid) {
+    Player* player = (Player*) malloc(sizeof(Player));
+    player->pid = pid;
+    player->money = STARTING_MONEY;
+    player->V1 = 0;
+    player->V2 = 0;
+    player->points = 0;
+    player->currentSite = 0;
+    player->lastTurn = 0;
+    player->deck = create_deck(0, NULL);
+    return player;
+}
+
+void free_players(Player** players, int playerCount) {
+    for (int i = 0; i < playerCount; i++) {
+        free_deck(players[i]->deck);
+        free(players[i]);
+    }
+    free(players);
+}
+
+void update_player(Path* path, Player* player, int* updateInfo, 
+        int currentTurn) {
+    player->currentSite = updateInfo[NEW_SITE_INDEX];
+    player->lastTurn = currentTurn;
+    if (path->sites[updateInfo[NEW_SITE_INDEX]] == V1) {
+        player->V1++;
+    }
+    if (path->sites[updateInfo[NEW_SITE_INDEX]] == V2) {
+        player->V2++;
+    }
+    player->points += updateInfo[POINTS_INDEX];
+    player->money += updateInfo[MONEY_INDEX];
+    if (updateInfo[CARD_INDEX] != 0) {
+        add_card(player->deck, updateInfo[CARD_INDEX]);
+    } 
+}
+
+int calculate_player_score(Player* player) {
+    return calculate_deck_score(player->deck) + player->points + player->V1 + 
+            player->V2;
+}
+
+void check_player_args(int argc, char** argv) {
+    if (argc != 4) {
+        exit(player_error_msg(PLAYER_ARGS));
+    }
+    char *invalidChar1, *invalidChar2;
+    int playerCount = strtol(argv[2], &invalidChar1, 10);
+    if (*invalidChar1 != '\0' || playerCount < 1) {
+        exit(player_error_msg(PLAYER_COUNT));
+    }
+    int pid = strtol(argv[3], &invalidChar2, 10);
+    if (*invalidChar2 != '\0' || pid < 0 || pid >= playerCount) {
+        exit(player_error_msg(PLAYER_BAD_ID));
+    }
+}
+

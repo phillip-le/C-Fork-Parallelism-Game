@@ -1,0 +1,43 @@
+#ifndef DECK_H
+#define DECK_H
+
+#define UNIQUE_CARD_COUNT 5
+
+#include "stdbool.h"
+
+typedef enum {
+    CARD_A = 0,
+    CARD_B = 1,
+    CARD_C = 2,
+    CARD_D = 3,
+    CARD_E = 4,
+    CARD_INVALID
+} CARDS;
+
+typedef struct {
+    CARDS* cards;
+    int cardCount;
+} Deck;
+
+Deck* read_deck(char* deckString);
+
+Deck* create_deck(int cardCount, CARDS* cards);
+
+void free_deck(Deck* deck);
+
+bool add_card(Deck* deck, CARDS card);
+
+int calculate_deck_score(Deck* deck);
+
+CARDS get_card(char card);
+char get_card_char(CARDS card);
+
+/**
+ * Gets number of cards of each type.
+ * Param:
+ * deck - the deck of cards to check
+ * Returns the number of cards of each type.
+ */
+int* get_card_counters(Deck* deck);
+
+#endif

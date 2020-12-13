@@ -1,0 +1,172 @@
+#include "stdlib.h"
+#include "stdlib.h"
+#include "stdio.h"
+#include "deck.h"
+#include "string.h"
+#include "stdbool.h"
+#include "utility.h"
+
+// Defines the indexes for the types of sets for scoring purposes
+#define FULL_SET_INDEX 0
+#define FOUR_SET_INDEX 1
+#define THREE_SET_INDEX 2
+#define TWO_SET_INDEX 3
+#define ONE_SET_INDEX 4
+
+/**
+ * Takes a '\n' terminated string.
+ */
+Deck* read_deck(char* deckString) {
+    char* cardsString;
+    int cardCount = strtol(deckString, &cardsString, 10);
+    if (cardsString[strlen(cardsString) - 1] != '\n' || 
+            cardsString[0] == '\0' || cardsString == deckString ||
+            (int) strlen(cardsString) != cardCount + 1) {
+        return NULL;
+    }
+    CARDS* cards = (CARDS*) malloc(sizeof(CARDS) * cardCount);
+    int cardCounter = 0;
+    for (int i = 0; i < cardCount; i++) {
+        if (get_card(cardsString[i]) == CARD_INVALID) {
+            free(cards);
+            return NULL;
+        } else {
+            cards[i] = get_card(cardsString[i]);
+            cardCounter++;
+        }
+    }
+    if (cardCounter != cardCount) {
+        free(cards);
+        return NULL;
+    }
+    Deck* deck = create_deck(cardCount, cards);
+    free(cards);
+    return deck;
+}
+
+Deck* create_deck(int cardCount, CARDS* cards) {
+    Deck* deck = (Deck*) malloc(sizeof(Deck));
+    deck->cardCount = cardCount;
+    deck->cards = (CARDS*) malloc(sizeof(CARDS) * cardCount);
+    for (int i = 0; i < cardCount; i++) {
+        deck->cards[i] = cards[i];
+    }
+    return deck;
+}
+
+void free_deck(Deck* deck) {
+    free(deck->cards);
+    free(deck);
+}
+
+bool add_card(Deck* deck, CARDS card) {
+    deck->cardCount++;
+    CARDS* cards = realloc(deck->cards, sizeof(CARDS) * deck->cardCount);
+    if (cards == NULL) {
+        return false;
+    }
+    deck->cards[deck->cardCount - 1] = card;
+    return true;
+}
+
+int calculate_deck_score(Deck* deck) {
+    int* cardCounters = get_card_counters(deck);
+    int setCounters[5] = {0, 0, 0, 0, 0};
+    for (int i = 0; i < deck->cardCount; i++) {
+        int count = count_greater_than(cardCounters, UNIQUE_CARD_COUNT, i);
+        switch (count) {
+            case 5:
+                setCounters[FULL_SET_INDEX]++;
+                break;
+            case 4:
+                setCounters[FOUR_SET_INDEX]++;
+                break;
+            case 3:
+                setCounters[THREE_SET_INDEX]++;
+                break;
+            case 2:
+                setCounters[TWO_SET_INDEX]++;
+                break;
+            case 1:
+                setCounters[ONE_SET_INDEX]++;
+                break;
+        }
+    }
+    int setScores[5] = {10, 7, 5, 3, 1};
+    int totalScore = 0;
+    for (int i = 0; i < UNIQUE_CARD_COUNT; i++) {
+        totalScore += setCounters[i] * setScores[i];
+    }
+    free(cardCounters);
+    return totalScore;
+}
+
+CARDS get_card(char card) {
+    switch (card) {
+        case 'A':
+            return CARD_A;
+        case 'B':
+            return CARD_B;
+        case 'C':
+            return CARD_C;
+        case 'D':
+            return CARD_D;
+        case 'E':
+            return CARD_E;
+        default:
+            return CARD_INVALID;
+    }
+}
+
+char get_card_char(CARDS card) {
+    switch (card) {
+        case CARD_A:
+            return 'A';
+        case CARD_B:
+            return 'B';
+        case CARD_C:
+            return 'C';
+        case CARD_D:
+            return 'D';
+        case CARD_E:
+            return 'E';
+        default:
+            return 0;
+    }
+}
+
+/**
+ * Gets number of cards of each type.
+ * Param:
+ * deck - the deck of cards to check
+ * Returns the number of cards of each type.
+ */
+int* get_card_counters(Deck* deck) {
+    int* cardCounters = (int*) malloc(sizeof(int) * UNIQUE_CARD_COUNT);
+    for (int i = 0; i < UNIQUE_CARD_COUNT; i++) {
+        cardCounters[i] = 0;
+    }
+    for (int i = 0; i < deck->cardCount; i++) {
+        switch (deck->cards[i]) {
+            case CARD_A:
+                cardCounters[0]++;
+                break;
+            case CARD_B:
+                cardCounters[1]++;
+                break;
+            case CARD_C:
+                cardCounters[2]++;
+                break;
+            case CARD_D:
+                cardCounters[3]++;
+                break;
+            case CARD_E:
+                cardCounters[4]++;
+                break;
+            case CARD_INVALID:
+                free(cardCounters);
+                return NULL;
+        }
+    }
+    return cardCounters;
+}

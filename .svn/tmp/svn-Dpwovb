@@ -1,0 +1,128 @@
+#include "player.h"
+#include "path.h"
+#include "deck.h"
+#include "errors.h"
+#include "stdlib.h"
+#include "stdbool.h"
+#include "deck.h"
+#include "utility.h"
+#include "stdio.h"
+#include "coms.h"
+
+Player* init_player(int playerID, int playerCount, char* pathString) {
+    Player* player = (Player*) malloc(sizeof(Player));
+    player->playerID = playerID;
+    player->playerCount = playerCount;
+    player->money = STARTING_MONEY;
+    player->V1 = 0;
+    player->V2 = 0;
+    player->points = 0;
+    player->currentSite = 0;
+    player->path = read_path(pathString, playerCount);
+    player->deck = create_deck(0, NULL);
+    if (player->path == NULL) {
+        free(pathString);
+        exit(player_error_msg(PLAYER_BAD_PATH));
+    }
+    return player;
+}
+
+void free_player(Player* player) {
+    free_path(player->path);
+    free_deck(player->deck);
+    free(player);
+}
+
+bool valid_move(Path* path, int currentSite, int destSite) {
+    if (site_occupied(path, destSite)) {
+        return false;
+    }
+    if (destSite > get_next_barrier(currentSite, path)) {
+        return false;
+    }
+    return true;
+}
+
+void move_player(Player* player, int destSite) {
+    int playerID = player->playerID;
+    for (int i = 0; i < player->path->numOfSites; i++) {
+        player->path->playerPositions[i][playerID] = UNOCCUPIED;
+    }
+    player->path->playerPositions[destSite][playerID] = playerID;
+    player->currentSite = destSite;
+}
+
+bool d_update_player(Player* player, CARDS nextCard) {
+    switch (player->currentSite) {
+        case MO:
+            player->money += 3;
+            return true;;
+        case V1:
+            player->points += player->V1;
+            player->V1++;
+            return true;;
+        case V2:
+            player->points += player->V2;
+            player->V2++;
+            return true;;
+        case DO:
+            player->points += (int) player->money / 2;
+            player->money = 0;
+            return true;;
+        case RI:
+            if (!add_card(player->deck, nextCard)) {
+                return false;
+            }
+            return true;;
+        case BARRIER:
+            return true;;
+        case SITE_ERROR_TYPE:
+            return false;
+    }
+}
+
+void p_update_player(Player* player, char* update) {
+    int msgStartLength = 3;
+    int playerIDIndex = 0, newSiteIndex = 1, pointsIndex = 2, moneyIndex = 3,
+            cardIndex = 4;
+    char* msgStart[msgStartLength + 1];
+    str_splice(msgStart, update, 0, msgStartLength + 1);
+    if (!strcmp(msgStart, "HAP")) {
+        exit(player_error_msg(PLAYER_COMS));
+    }
+    char* infoString[20];
+    str_splice(infoString, update, msgStartLength, strlen(update));
+    int info[] = {0, 0, 0, 0, 0};
+    for (int i = 0; i < 5; i++) {
+        char* invalidChar, intString;
+        if (i == 0) {
+            intString = strtok(infoString, ",");
+        } else {
+            intString = strtok(NULL, ",");
+        }
+        info[i] = strtol(intString, &invalidChar, 10);
+        if (invalidChar != '\0') {
+            exit(player_error_msg(PLAYER_COMS));
+        }
+    }
+    if (info[playerIDIndex] < 0 || 
+            info[playerIDIndex] > player->playerCount) {
+        exit(player_error_msg(PLAYER_COMS));
+    }
+    if (!valid_move(player->path, player->currentSite, info[newSiteIndex])) {
+        exit(player_error_msg(PLAYER_COMS));
+    }
+    if (info[cardIndex] < 0 || info[cardIndex] > 5) {
+        exit(player_error_msg(PLAYER_COMS));
+    }
+    if (info[playerIDIndex] == player->playerID) {
+        move_player(player, info[newSiteIndex]);
+        player->points += info[pointsIndex];
+        player->money += info[moneyIndex];
+        if (info[cardIndex] != 0) {
+            add_card(player->deck, info[cardIndex]);
+        } 
+    }
+    print_player_update(stderr, update);
+}
+

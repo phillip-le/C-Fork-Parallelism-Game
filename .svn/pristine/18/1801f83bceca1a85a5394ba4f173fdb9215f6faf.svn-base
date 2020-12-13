@@ -1,0 +1,27 @@
+#include "game.h"
+#include "path.h"
+
+int get_move(Game* game, int pid) {
+    int currentSite = game->players[pid]->currentSite;
+    int nextSite = currentSite + 1;
+    int nextBarrier = get_next_barrier(game->path, currentSite);
+    for (int i = nextSite; i < nextBarrier; i++) {
+        if (valid_move(game, pid, i) && 
+                game->path->sites[i] == DO) {
+            return i;
+        }
+    }
+    if (valid_move(game, pid, nextSite) && 
+            game->path->sites[nextSite] == MO) {
+        return nextSite;
+    }
+    for (int i = nextSite; i <= nextBarrier; i++) {
+        if (valid_move(game, pid, i)) {
+            Site site = game->path->sites[i];
+            if (site == V1 || site == V2 || site == BARRIER) {
+                return i;
+            }
+        }
+    }
+    return -1;
+}

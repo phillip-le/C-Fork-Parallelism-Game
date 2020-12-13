@@ -1,0 +1,31 @@
+#ifndef PLAYER_H
+#define PLAYER_H
+
+#include "deck.h"
+#include "path.h"
+
+#define STARTING_MONEY 7
+
+typedef struct {
+    int playerID;
+    int playerCount;
+    int money;
+    // Number of V1 sites visited so far
+    int V1;
+
+    // Number of V2 sites visited so far
+    int V2;
+    int points;
+    int currentSite;
+    Deck* deck;
+    Path* path;
+} Player;
+
+Player* init_player(int playerID, int playerCount, char* pathString);
+
+void free_player(Player* player);
+
+bool valid_move(Path* path, int currentSite, int destSite);
+
+void move_player(Player* player, int destSite);
+#endif
